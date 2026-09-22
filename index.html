@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>HR 招聘台账</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+        --blue: #2563eb;
+        --blue-dark: #1d4ed8;
+        --blue-light: #eff6ff;
+        --blue-border: #bfdbfe;
+        --text: #0f172a;
+        --text-sub: #475569;
+        --text-mute: #94a3b8;
+        --border: #e2e8f0;
+        --border-light: #f1f5f9;
+        --bg: #f8fafc;
+        --white: #ffffff;
+        --green: #15803d;
+        --red: #b91c1c;
+        --amber: #d97706;
+    }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', 'PingFang SC', Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        font-size: 13px;
+        line-height: 1.5;
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    .app-container { display: flex; height: 100vh; width: 100vw; overflow: hidden; }
+
+    /* ========== 侧边导航 ========== */
+    .nav-sidebar {
+        width: 110px; min-width: 110px; background: var(--white);
+        border-right: 1px solid var(--border); display: flex; flex-direction: column;
+        flex-shrink: 0; height: 100vh; overflow-y: auto;
+    }
+    .brand { padding: 18px 14px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+    .brand-name { font-size: 15px; font-weight: 700; color: var(--blue); letter-spacing: 0.5px; }
+    .brand-sub { font-size: 11px; color: var(--text-mute); margin-top: 2px; }
+    .nav-btn {
+        width: 100%; border: none; background: transparent; color: var(--text-sub);
+        font-size: 13px; font-weight: 500; cursor: pointer; transition: 0.12s;
+        text-align: left; padding: 12px 14px; font-family: inherit;
+        border-left: 3px solid transparent; white-space: nowrap;
+    }
+    .nav-btn:hover { background: var(--blue-light); color: var(--blue); }
+    .nav-btn.active { background: var(--blue-light); color: var(--blue); font-weight: 600; border-left-color: var(--blue); }
+
+    /* ========== 主内容区 ========== */
+    .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 20px 24px; }
+    .view { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+    .view.active { display: flex; }
+
+    /* ========== 工具条 ========== */
+    .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+    .toolbar h1 { font-size: 18px; font-weight: 700; color: var(--text); }
+    .toolbar-info { font-size: 12.5px; color: var(--text-sub); margin-top: 4px; }
+    .toolbar-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+    /* ========== 按钮 ========== */
+    .btn {
+        padding: 7px 14px; border: 1px solid var(--border); border-radius: 5px;
+        background: var(--white); color: var(--text-sub); cursor: pointer;
+        font-size: 12.5px; font-family: inherit; transition: 0.12s; white-space: nowrap;
+    }
+    .btn:hover { border-color: var(--blue-border); color: var(--blue); background: var(--blue-light); }
+    .btn-primary { background: var(--blue); border-color: var(--blue); color: #fff; font-weight: 500; }
+    .btn-primary:hover { background: var(--blue-dark); border-color: var(--blue-dark); color: #fff; }
+    .btn-sm { padding: 5px 10px; font-size: 11.5px; }
+    .btn-danger { color: var(--red); border-color: #fecaca; }
+    .btn-danger:hover { background: #fef2f2; border-color: #fca5a5; color: var(--red); }
+
+    /* ========== 社招台账表格 ========== */
+    .filter-bar {
+        display: flex; gap: 12px; align-items: center; margin-bottom: 12px;
+        background: var(--white); padding: 10px 16px; border: 1px solid var(--border); border-radius: 6px; flex-wrap: wrap;
+    }
+    .filter-bar label { font-size: 12.5px; color: var(--text-sub); display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    .filter-bar select { padding: 5px 10px; font-size: 12.5px; border: 1px solid var(--border); border-radius: 5px; background: var(--white); color: var(--text); outline: none; }
+    .filter-bar input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--blue); cursor: pointer; }
+
+    .table-wrap { flex: 1; overflow: auto; background: var(--white); border: 1px solid var(--border); border-radius: 6px; }
+    table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px; min-width: 1600px; }
+    thead th {
+        position: sticky; top: 0; z-index: 5; background: #f8fafc; padding: 10px 8px;
+        text-align: left; font-weight: 600; font-size: 11.5px; color: var(--text-sub);
+        white-space: nowrap; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border-light);
+    }
+    thead th:last-child { border-right: none; }
+    tbody td { padding: 6px 8px; border-bottom: 1px solid var(--border-light); vertical-align: middle; background: var(--white); border-right: 1px solid var(--border-light); }
+    tbody td:last-child { border-right: none; }
+    tbody tr:hover td { background: #f8fafc; }
+    tbody tr.row-onboarded td { background: #e0f2fe; }
+    
+    .cell-input, .cell-select {
+        width: 100%; min-width: 0; padding: 5px 6px; font-size: 12px; color: var(--text);
+        background: transparent; border: 1px solid transparent; border-radius: 4px; outline: none;
+        transition: border-color 0.12s, background 0.12s; font-family: inherit;
+    }
+    .cell-input:hover, .cell-select:hover { border-color: var(--border); background: var(--white); }
+    .cell-input:focus, .cell-select:focus { border-color: var(--blue); background: var(--white); box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.12); }
+    .cell-input[type="date"], .cell-input[type="datetime-local"] { padding: 4px 5px; font-size: 11.5px; }
+    .cell-select { appearance: none; cursor: pointer; }
+    
+    .tag-yes { color: var(--green); font-weight: 500; }
+    .tag-no { color: var(--red); font-weight: 500; }
+    .tag-none { color: var(--text-mute); }
+    .tag-strong { color: var(--green); font-weight: 600; }
+    .warn-badge { display: inline-block; background: var(--amber); color: #fff; font-size: 10px; padding: 1px 5px; border-radius: 3px; margin-left: 4px; vertical-align: middle; }
+
+    .col-idx { width: 40px; text-align: center; color: var(--text-mute); font-size: 11.5px; padding: 4px !important; }
+    .col-act { width: 60px; text-align: center; padding: 4px !important; white-space: nowrap; }
+
+    /* ========== 日历 & 待办 ========== */
+    .calendar-layout { display: flex; gap: 16px; flex: 1; overflow: hidden; }
+    .calendar-left { flex: 0 0 320px; background: var(--white); border: 1px solid var(--border); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; }
+    .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .calendar-header h3 { font-size: 14px; font-weight: 600; }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+    .cal-head { font-size: 11px; color: var(--text-sub); font-weight: 600; padding: 4px 0; }
+    .cal-day { padding: 6px 0; font-size: 12px; border-radius: 4px; cursor: pointer; position: relative; }
+    .cal-day:hover { background: var(--blue-light); }
+    .cal-day.other { color: #cbd5e1; }
+    .cal-day.today { background: var(--blue-light); color: var(--blue); font-weight: 700; }
+    .cal-day.has-event::after { content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; border-radius: 50%; background: var(--blue); }
+    .calendar-detail { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--border); flex: 1; overflow-y: auto; }
+    .calendar-detail h4 { font-size: 13px; margin-bottom: 8px; }
+    .event-item { font-size: 12px; padding: 8px; background: #f8fafc; border-radius: 4px; margin-bottom: 6px; }
+    
+    .todo-column { flex: 1; background: var(--white); border: 1px solid var(--border); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; }
+    .todo-column h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+    .todo-list { flex: 1; overflow-y: auto; margin-bottom: 12px; }
+    .todo-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: #f8fafc; border-radius: 6px; margin-bottom: 6px; }
+    .todo-item input[type="checkbox"] { accent-color: var(--blue); width: 15px; height: 15px; cursor: pointer; }
+    .todo-item span { flex: 1; font-size: 12.5px; }
+    .todo-item span.done { text-decoration: line-through; color: var(--text-mute); }
+    .todo-item .del { cursor: pointer; color: var(--text-mute); font-size: 14px; background: none; border: none; }
+    .todo-input-group { display: flex; gap: 8px; }
+    .todo-input-group input { flex: 1; padding: 6px 10px; font-size: 12.5px; border: 1px solid var(--border); border-radius: 5px; outline: none; }
+    .todo-input-group input:focus { border-color: var(--blue); }
+
+    /* ========== 岗位管理 ========== */
+    .jobs-layout { display: flex; gap: 16px; flex: 1; overflow: hidden; }
+    .jobs-left { flex: 0 0 280px; background: var(--white); border: 1px solid var(--border); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; }
+    .jobs-left .form-group { margin-bottom: 12px; }
+    .jobs-left label { font-size: 11.5px; font-weight: 600; color: var(--text-sub); display: block; margin-bottom: 4px; }
+    .jobs-left input, .jobs-left textarea { width: 100%; padding: 7px 10px; font-size: 12.5px; border: 1px solid var(--border); border-radius: 5px; outline: none; font-family: inherit; }
+    .jobs-left input:focus, .jobs-left textarea:focus { border-color: var(--blue); }
+    .job-list { flex: 1; overflow-y: auto; margin-top: 8px; }
+    .job-list-item { padding: 8px 10px; font-size: 13px; border-radius: 5px; cursor: pointer; display: flex; justify-content: space-between; }
+    .job-list-item:hover { background: var(--blue-light); }
+    .job-list-item.active { background: var(--blue-light); color: var(--blue); font-weight: 600; }
+    .job-list-item .del-btn { color: var(--text-mute); cursor: pointer; border: none; background: none; font-size: 14px; }
+    
+    .jobs-center { flex: 1; background: var(--white); border: 1px solid var(--border); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; }
+    .jobs-center textarea { flex: 1; width: 100%; padding: 10px; font-size: 12.5px; border: 1px solid var(--border); border-radius: 5px; outline: none; resize: none; font-family: inherit; line-height: 1.6; }
+    .jobs-center textarea:focus { border-color: var(--blue); }
+    .jobs-center-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .jobs-right { flex: 0 0 280px; background: var(--white); border: 1px solid var(--border); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; }
+    .jobs-right textarea { flex: 1; width: 100%; padding: 10px; font-size: 12.5px; border: 1px solid var(--border); border-radius: 5px; outline: none; resize: none; font-family: inherit; line-height: 1.6; }
+    .jobs-right textarea:focus { border-color: var(--blue); }
+
+    /* ========== 数据统计 ========== */
+    .stats-layout { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .stat-card { background: var(--white); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+    .stat-card h3 { font-size: 13px; color: var(--text-sub); margin-bottom: 12px; font-weight: 500; }
+    .stat-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12.5px; }
+    .stat-row .name-list { color: var(--text-mute); font-size: 11.5px; }
+    .stat-row .num { font-weight: 700; color: var(--blue); }
+    .stat-total { border-top: 1px dashed var(--border); padding-top: 8px; margin-top: 8px; }
+    .stats-summary { background: var(--white); border: 1px solid var(--border); border-radius: 8px; padding: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+    .stats-summary .summary-text { font-size: 13px; }
+    .stats-summary .summary-text strong { color: var(--blue); }
+    .stats-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    /* ========== Toast ========== */
+    .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(8px); background: #0f172a; color: #fff; padding: 10px 20px; border-radius: 5px; font-size: 12.5px; opacity: 0; transition: 0.2s; pointer-events: none; z-index: 300; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ========== 滚动条 ========== */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    ::-webkit-scrollbar-track { background: transparent; }
+
+    /* ========== 响应式 ========== */
+    @media (max-width: 1000px) {
+        .calendar-layout { flex-direction: column; }
+        .calendar-left { flex: 0 0 auto; }
+        .jobs-layout { flex-direction: column; }
+        .jobs-left, .jobs-right { flex: 0 0 auto; }
+        .stats-grid { grid-template-columns: 1fr; }
+    }
+</style>
+</head>
+<body>
+
+<div class="app-container">
+    <!-- 侧边导航 -->
+    <nav class="nav-sidebar">
+        <div class="brand">
+            <div class="brand-name">HR 台账</div>
+            <div class="brand-sub">招聘管理系统</div>
+        </div>
+        <button class="nav-btn active" data-view="ledger">社招台账</button>
+        <button class="nav-btn" data-view="calendar">日历 & 待办</button>
+        <button class="nav-btn" data-view="jobs">岗位管理</button>
+        <button class="nav-btn" data-view="stats">数据统计</button>
+    </nav>
+
+    <!-- 主内容 -->
+    <main class="main-content">
+
+        <!-- ===== 社招台账 ===== -->
+        <section class="view active" id="view-ledger">
+            <div class="toolbar">
+                <div>
+                    <h1>社招台账</h1>
+                    <div class="toolbar-info" id="ledger-info">现在是 HR 实习生，请在「岗位管理」中完善公司信息</div>
+                </div>
+                <div class="toolbar-actions">
+                    <button class="btn btn-sm btn-primary" onclick="addRow()">＋ 添加候选人</button>
+                </div>
+            </div>
+
+            <div class="filter-bar">
+                <label>岗位筛选：
+                    <select id="filter-job" onchange="renderTable()">
+                        <option value="">全部岗位</option>
+                    </select>
+                </label>
+                <label><input type="checkbox" id="filter-followup" onchange="renderTable()"> 仅显示待催办</label>
+                <button class="btn btn-sm" onclick="clearFilters()">清除筛选</button>
+                <span style="color:var(--text-mute); font-size:11.5px; margin-left:auto;" id="filter-count"></span>
+            </div>
+
+            <div class="table-wrap">
+                <table id="ledger-table">
+                    <thead>
+                        <tr>
+                            <th class="col-idx">#</th>
+                            <th class="col-act">操作</th>
+                            <th style="min-width:90px;">姓名</th>
+                            <th style="min-width:110px;">投递岗位</th>
+                            <th style="min-width:120px;">简历时间</th>
+                            <th style="min-width:96px;">简历通过</th>
+                            <th style="min-width:96px;">电话约面</th>
+                            <th style="min-width:150px;">一面时间</th>
+                            <th style="min-width:96px;">一面结果</th>
+                            <th style="min-width:150px;">二面时间</th>
+                            <th style="min-width:96px;">二面结果</th>
+                            <th style="min-width:150px;">三面时间</th>
+                            <th style="min-width:96px;">三面结果</th>
+                            <th style="min-width:110px;">入职情况</th>
+                            <th style="min-width:140px;">备注</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ledger-body"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- ===== 日历 & 待办 ===== -->
+        <section class="view" id="view-calendar">
+            <div class="toolbar">
+                <div>
+                    <h1>日历 & 待办</h1>
+                    <div class="toolbar-info">查看面试安排，管理日常工作与长期任务</div>
+                </div>
+            </div>
+            <div class="calendar-layout">
+                <!-- 左：日历 -->
+                <div class="calendar-left">
+                    <div class="calendar-header">
+                        <h3 id="cal-month">2026年9月</h3>
+                        <div>
+                            <button class="btn btn-sm" onclick="calPrev()">‹</button>
+                            <button class="btn btn-sm" onclick="calToday()">今</button>
+                            <button class="btn btn-sm" onclick="calNext()">›</button>
+                        </div>
+                    </div>
+                    <div class="calendar-grid" id="cal-grid"></div>
+                    <div class="calendar-detail" id="cal-detail">
+                        <h4>该日安排</h4>
+                        <div style="color:var(--text-mute);font-size:12px;">点击日期查看安排</div>
+                    </div>
+                </div>
+                <!-- 中：短期待办 -->
+                <div class="todo-column">
+                    <h3>短期待办</h3>
+                    <div class="todo-list" id="todo-short-list"></div>
+                    <div class="todo-input-group">
+                        <input id="todo-short-input" placeholder="添加短期待办..." onkeydown="if(event.key==='Enter')addTodo('short')">
+                        <button class="btn btn-sm btn-primary" onclick="addTodo('short')">添加</button>
+                    </div>
+                </div>
+                <!-- 右：长期待办 -->
+                <div class="todo-column">
+                    <h3>长期待办</h3>
+                    <div class="todo-list" id="todo-long-list"></div>
+                    <div class="todo-input-group">
+                        <input id="todo-long-input" placeholder="添加长期待办..." onkeydown="if(event.key==='Enter')addTodo('long')">
+                        <button class="btn btn-sm btn-primary" onclick="addTodo('long')">添加</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== 岗位管理 ===== -->
+        <section class="view" id="view-jobs">
+            <div class="toolbar">
+                <div>
+                    <h1>岗位管理</h1>
+                    <div class="toolbar-info">维护公司信息、岗位列表及岗位描述</div>
+                </div>
+            </div>
+            <div class="jobs-layout">
+                <!-- 左：公司设置与岗位列表 -->
+                <div class="jobs-left">
+                    <div class="form-group">
+                        <label>公司名称</label>
+                        <input id="set-company" placeholder="公司" onchange="saveSettingsFromInput()">
+                    </div>
+                    <div class="form-group">
+                        <label>入职时间</label>
+                        <input type="date" id="set-start-date" onchange="saveSettingsFromInput()">
+                    </div>
+                    <div class="form-group">
+                        <label>KPI 设置</label>
+                        <textarea id="set-kpi" rows="2" placeholder="如: 每周完成3人一面，每月入职2人" onchange="saveSettingsFromInput()"></textarea>
+                    </div>
+                    <div class="form-group" style="display:flex; justify-content:space-between; align-items:center;">
+                        <label style="margin-bottom:0;">岗位列表</label>
+                    </div>
+                    <div class="todo-input-group" style="margin-bottom:8px;">
+                        <input id="job-name-input" placeholder="输入岗位名称">
+                        <button class="btn btn-sm btn-primary" onclick="addJob()">＋ 添加</button>
+                    </div>
+                    <div class="job-list" id="job-list-container"></div>
+                </div>
+                <!-- 中：岗位描述（JD） -->
+                <div class="jobs-center">
+                    <div class="jobs-center-header">
+                        <h3 style="font-size:13px;">岗位描述 (JD)</h3>
+                        <div>
+                            面试轮数：
+                            <select id="job-rounds" style="padding:4px 8px; border:1px solid var(--border); border-radius:4px; outline:none;" onchange="saveJobDetail()">
+                                <option value="1">1 轮</option>
+                                <option value="2">2 轮</option>
+                                <option value="3" selected>3 轮</option>
+                                <option value="4">4 轮</option>
+                            </select>
+                            <button class="btn btn-sm btn-primary" style="margin-left:8px;" onclick="saveJobDetail()">保存</button>
+                        </div>
+                    </div>
+                    <textarea id="job-jd-input" placeholder="请从左侧选择一个岗位..."></textarea>
+                </div>
+                <!-- 右：额外提示 -->
+                <div class="jobs-right">
+                    <div class="jobs-center-header">
+                        <h3 style="font-size:13px;">额外提示</h3>
+                        <button class="btn btn-sm" onclick="saveJobDetail()">保存</button>
+                    </div>
+                    <textarea id="job-tip-input" placeholder="业务偏好、面试特殊要求等..."></textarea>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== 数据统计 ===== -->
+        <section class="view" id="view-stats">
+            <div class="toolbar">
+                <div>
+                    <h1>数据统计</h1>
+                    <div class="toolbar-info">基于社招台账自动计算</div>
+                </div>
+            </div>
+            <div class="stats-layout">
+                <div class="stats-grid" id="stats-grid"></div>
+                <div class="stats-summary">
+                    <div class="summary-text" id="stats-summary-text">本周收到 0 份简历，邀约一面 0 人</div>
+                    <div class="stats-actions">
+                        <button class="btn btn-sm" onclick="exportExcel()">导出台账</button>
+                        <button class="btn btn-sm" onclick="exportJSON()">导出 JSON</button>
+                        <button class="btn btn-sm" onclick="importJSON()">导入 JSON</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ==========================================================
+   数据层
+   ========================================================== */
+const STORAGE_KEY = 'hr_ledger_simple_v1';
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function todayStr() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function escapeHtml(s) {
+    if (s === null || s === undefined) return '';
+    return String(s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+}
+
+let state = {
+    candidates: [],
+    todos: [],
+    jobs: [],
+    settings: { company: '', startDate: '', kpi: '', jobList: [] }
+};
+
+try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) state = Object.assign(state, JSON.parse(raw));
+} catch (e) { console.warn('数据读取失败', e); }
+
+function saveState() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+    catch (e) { toast('保存失败：' + e.message); }
+}
+
+let toastTimer = null;
+function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+/* ==========================================================
+   视图切换
+   ========================================================== */
+function switchView(name) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('view-' + name).classList.add('active');
+    document.querySelector(`.nav-btn[data-view="${name}"]`).classList.add('active');
+    
+    if (name === 'ledger') renderTable();
+    if (name === 'calendar') { renderCalendar(); renderTodos(); }
+    if (name === 'jobs') renderJobsView();
+    if (name === 'stats') renderStats();
+}
+document.querySelectorAll('.nav-btn').forEach(b => b.addEventListener('click', () => switchView(b.dataset.view)));
+
+/* ==========================================================
+   社招台账（智能流程控制 + 行内编辑）
+   ========================================================== */
+function needsFollowUp(c) {
+    if (c.onboard === '已入职' || c.onboard === '已拒绝') return false;
+    const dates = [c.resumeDate, c.i1t, c.i2t, c.i3t].filter(Boolean);
+    if (!dates.length) return false;
+    const last = new Date(dates[dates.length - 1]);
+    if (isNaN(last.getTime())) return false;
+    return Math.floor((Date.now() - last.getTime()) / 86400000) > 5;
+}
+
+function renderTable() {
+    const tbody = document.getElementById('ledger-body');
+    const filterJob = document.getElementById('filter-job').value;
+    const onlyFollowUp = document.getElementById('filter-followup').checked;
+
+    const jobSel = document.getElementById('filter-job');
+    const curJob = jobSel.value;
+    jobSel.innerHTML = '<option value="">全部岗位</option>' +
+        state.settings.jobList.map(j => `<option value="${escapeHtml(j)}">${escapeHtml(j)}</option>`).join('');
+    jobSel.value = curJob;
+
+    let list = state.candidates.slice();
+    if (filterJob) list = list.filter(c => c.job === filterJob);
+    if (onlyFollowUp) list = list.filter(needsFollowUp);
+
+    document.getElementById('filter-count').textContent = `共 ${list.length} 条`;
+
+    if (!list.length) {
+        tbody.innerHTML = `<tr><td colspan="15" style="text-align:center;padding:40px;color:var(--text-mute);">暂无候选人数据，点击右上角「添加候选人」开始录入</td></tr>`;
+        updateInfo();
+        return;
+    }
+
+    tbody.innerHTML = list.map((c, i) => {
+        const onboarded = c.onboard === '已入职';
+        const warn = needsFollowUp(c);
+        const rowCls = onboarded ? 'row-onboarded' : '';
+        const warnBadge = warn ? '<span class="warn-badge">待催办</span>' : '';
+
+        // 核心流程控制：只有前置节点通过，才显示后续控件
+        const resumePassed = c.resumePass === '是';
+        const phonePassed = c.phone === '是';
+        const i1Passed = c.i1r === '通过';
+        const i2Passed = c.i2r === '通过';
+        const i3Passed = c.i3r === '通过';
+
+        const phoneSelect = resumePassed ? selectHtml(c.id, 'phone', ['待定', '是', '否', '打不通', '已拒绝'], c.phone) : '<span class="tag-none">—</span>';
+        const i1Time = phonePassed ? textHtml(c.id, 'i1t', c.i1t, 'datetime-local') : '<span class="tag-none">—</span>';
+        const i1Result = phonePassed ? selectHtml(c.id, 'i1r', ['待定', '通过', '不通过'], c.i1r) : '<span class="tag-none">—</span>';
+        const i2Time = i1Passed ? textHtml(c.id, 'i2t', c.i2t, 'datetime-local') : '<span class="tag-none">—</span>';
+        const i2Result = i1Passed ? selectHtml(c.id, 'i2r', ['待定', '通过', '不通过'], c.i2r) : '<span class="tag-none">—</span>';
+        const i3Time = i2Passed ? textHtml(c.id, 'i3t', c.i3t, 'datetime-local') : '<span class="tag-none">—</span>';
+        const i3Result = i2Passed ? selectHtml(c.id, 'i3r', ['待定', '通过', '不通过'], c.i3r) : '<span class="tag-none">—</span>';
+        const onboardSelect = i3Passed ? selectHtml(c.id, 'onboard', ['待定', '已入职', '已拒绝', '未入职'], c.onboard) : '<span class="tag-none">—</span>';
+
+        return `<tr class="${rowCls}">
+            <td class="col-idx">${i + 1}</td>
+            <td class="col-act"><button class="btn btn-sm btn-danger" onclick="deleteRow('${c.id}')">删除</button></td>
+            <td>${textHtml(c.id, 'name', c.name, 'text', '姓名')}${warnBadge}</td>
+            <td>${textHtml(c.id, 'job', c.job, 'text', '岗位')}</td>
+            <td>${textHtml(c.id, 'resumeDate', c.resumeDate, 'date')}</td>
+            <td>${selectHtml(c.id, 'resumePass', ['待定', '是', '否'], c.resumePass)}</td>
+            <td>${phoneSelect}</td>
+            <td>${i1Time}</td>
+            <td>${i1Result}</td>
+            <td>${i2Time}</td>
+            <td>${i2Result}</td>
+            <td>${i3Time}</td>
+            <td>${i3Result}</td>
+            <td>${onboardSelect}</td>
+            <td>${textHtml(c.id, 'note', c.note, 'text', '备注')}</td>
+        </tr>`;
+    }).join('');
+
+    updateInfo();
+}
+
+function textHtml(id, field, value, type, placeholder) {
+    const v = escapeHtml(value || '');
+    const ph = placeholder ? ` placeholder="${placeholder}"` : '';
+    return `<input type="${type}" class="cell-input" value="${v}"${ph} onchange="updateCell('${id}','${field}',this.value)">`;
+}
+
+function selectHtml(id, field, options, currentValue) {
+    let cls = 'cell-select';
+    if (currentValue === '是' || currentValue === '通过' || currentValue === '已入职') cls += ' tag-yes';
+    if (currentValue === '否' || currentValue === '不通过' || currentValue === '已拒绝') cls += ' tag-no';
+    const opts = options.map(o => `<option value="${o}"${o === currentValue ? ' selected' : ''}>${o}</option>`).join('');
+    return `<select class="${cls}" onchange="updateCell('${id}','${field}',this.value)">${opts}</select>`;
+}
+
+function updateCell(id, field, value) {
+    const c = state.candidates.find(x => x.id === id);
+    if (!c) return;
+    c[field] = value;
+    
+    // 级联清空：如果前置条件被改，后续数据自动清空
+    if (field === 'resumePass' && value !== '是') {
+        c.phone = ''; c.i1t = ''; c.i1r = ''; c.i2t = ''; c.i2r = ''; c.i3t = ''; c.i3r = ''; c.onboard = '';
+    }
+    if (field === 'phone' && value !== '是') {
+        c.i1t = ''; c.i1r = ''; c.i2t = ''; c.i2r = ''; c.i3t = ''; c.i3r = ''; c.onboard = '';
+    }
+    if (field === 'i1r' && value !== '通过') {
+        c.i2t = ''; c.i2r = ''; c.i3t = ''; c.i3r = ''; c.onboard = '';
+    }
+    if (field === 'i2r' && value !== '通过') {
+        c.i3t = ''; c.i3r = ''; c.onboard = '';
+    }
+    if (field === 'i3r' && value !== '通过') {
+        c.onboard = '';
+    }
+
+    saveState();
+    renderTable();
+}
+
+function addRow() {
+    const c = {
+        id: uid(), name: '', job: '', resumeDate: todayStr(),
+        resumePass: '待定', phone: '待定', i1t: '', i1r: '待定',
+        i2t: '', i2r: '待定', i3t: '', i3r: '待定', onboard: '待定', note: ''
+    };
+    state.candidates.unshift(c);
+    saveState();
+    renderTable();
+    setTimeout(() => {
+        const firstRow = document.querySelector('#ledger-body tr:first-child input');
+        if (firstRow) firstRow.focus();
+    }, 50);
+}
+
+function deleteRow(id) {
+    if (!confirm('确定要删除该候选人吗？')) return;
+    state.candidates = state.candidates.filter(x => x.id !== id);
+    saveState();
+    renderTable();
+    toast('已删除');
+}
+
+function clearFilters() {
+    document.getElementById('filter-job').value = '';
+    document.getElementById('filter-followup').checked = false;
+    renderTable();
+}
+
+function updateInfo() {
+    const el = document.getElementById('ledger-info');
+    let msg = '现在是 HR 实习生，请在「岗位管理」中完善公司信息';
+    if (state.settings.startDate) {
+        const start = new Date(state.settings.startDate);
+        const days = Math.floor((Date.now() - start.getTime()) / 86400000) + 1;
+        msg = `现在是 HR 实习生，今天是你在 ${state.settings.company || '公司'} 工作的第 ${days} 天`;
+    } else if (state.settings.company) {
+        msg = `现在是 HR 实习生，当前所在公司：${state.settings.company}`;
+    }
+    if (state.settings.kpi) msg += ` ｜ KPI：${state.settings.kpi}`;
+    el.textContent = msg;
+}
+
+/* ==========================================================
+   日历 & 待办
+   ========================================================== */
+let calYear = null, calMonth = null;
+function calInit() { const d = new Date(); calYear = d.getFullYear(); calMonth = d.getMonth(); }
+function calPrev() { if (calYear === null) calInit(); calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCalendar(); }
+function calNext() { if (calYear === null) calInit(); calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } renderCalendar(); }
+function calToday() { calInit(); renderCalendar(); }
+
+function getEventsOnDate(dateStr) {
+    const events = [];
+    const labels = ['一面', '二面', '三面'];
+    const keys = ['i1t', 'i2t', 'i3t'];
+    state.candidates.forEach(c => {
+        keys.forEach((k, idx) => {
+            if (c[k] && c[k].startsWith(dateStr)) {
+                events.push({ label: labels[idx], name: c.name, time: c[k].slice(11, 16) });
+            }
+        });
+    });
+    return events;
+}
+
+function renderCalendar() {
+    if (calYear === null) calInit();
+    document.getElementById('cal-month').textContent = calYear + '年' + (calMonth + 1) + '月';
+
+    const firstDay = new Date(calYear, calMonth, 1).getDay();
+    const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+    const prevDays = new Date(calYear, calMonth, 0).getDate();
+    let html = ['日', '一', '二', '三', '四', '五', '六'].map(d => `<div class="cal-head">${d}</div>`).join('');
+
+    for (let i = firstDay - 1; i >= 0; i--) {
+        html += `<div class="cal-day other">${prevDays - i}</div>`;
+    }
+    for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = calYear + '-' + String(calMonth + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+        const isToday = dateStr === todayStr();
+        const events = getEventsOnDate(dateStr);
+        html += `<div class="cal-day${isToday ? ' today' : ''}${events.length ? ' has-event' : ''}" onclick="showDayDetail('${dateStr}')">${d}</div>`;
+    }
+    const totalCells = firstDay + daysInMonth;
+    const remain = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+    for (let d = 1; d <= remain; d++) {
+        html += `<div class="cal-day other">${d}</div>`;
+    }
+    document.getElementById('cal-grid').innerHTML = html;
+    document.getElementById('cal-detail').innerHTML = `<h4>该日安排</h4><div style="color:var(--text-mute);font-size:12px;">点击日期查看安排</div>`;
+}
+
+function showDayDetail(dateStr) {
+    const events = getEventsOnDate(dateStr);
+    const el = document.getElementById('cal-detail');
+    if (!events.length) {
+        el.innerHTML = `<h4>${dateStr} 该日安排</h4><div style="color:var(--text-mute);font-size:12px;">这一天没有安排</div>`;
+        return;
+    }
+    el.innerHTML = `<h4>${dateStr} 面试安排</h4>` + events.map(e => `<div class="event-item"><strong>${escapeHtml(e.name)}</strong> ${e.label} · ${e.time}</div>`).join('');
+}
+
+function renderTodos() {
+    const shorts = state.todos.filter(t => t.type === 'short' && !t.done);
+    const longs = state.todos.filter(t => t.type === 'long' && !t.done);
+    document.getElementById('todo-short-list').innerHTML = shorts.length ? shorts.map(todoHtml).join('') : '<div style="color:var(--text-mute);font-size:12px;padding:8px;">暂无短期待办</div>';
+    document.getElementById('todo-long-list').innerHTML = longs.length ? longs.map(todoHtml).join('') : '<div style="color:var(--text-mute);font-size:12px;padding:8px;">暂无长期待办</div>';
+}
+
+function todoHtml(t) {
+    return `<div class="todo-item"><input type="checkbox" onchange="toggleTodo('${t.id}')"><span>${escapeHtml(t.text)}</span><button class="del" onclick="deleteTodo('${t.id}')">×</button></div>`;
+}
+
+function addTodo(type) {
+    const input = document.getElementById(type === 'short' ? 'todo-short-input' : 'todo-long-input');
+    const text = input.value.trim();
+    if (!text) return;
+    state.todos.push({ id: uid(), text, type, done: false });
+    input.value = '';
+    saveState();
+    renderTodos();
+    toast('待办已添加');
+}
+
+function toggleTodo(id) {
+    const t = state.todos.find(x => x.id === id);
+    if (t) { t.done = !t.done; saveState(); renderTodos(); }
+}
+
+function deleteTodo(id) {
+    state.todos = state.todos.filter(x => x.id !== id);
+    saveState();
+    renderTodos();
+}
+
+/* ==========================================================
+   岗位管理
+   ========================================================== */
+let currentJobId = null;
+
+function renderJobsView() {
+    document.getElementById('set-company').value = state.settings.company || '';
+    document.getElementById('set-start-date').value = state.settings.startDate || '';
+    document.getElementById('set-kpi').value = state.settings.kpi || '';
+    
+    const container = document.getElementById('job-list-container');
+    if (!state.jobs.length) {
+        container.innerHTML = '<div style="color:var(--text-mute);font-size:12px;padding:8px;text-align:center;">暂无岗位</div>';
+        document.getElementById('job-jd-input').value = '';
+        document.getElementById('job-tip-input').value = '';
+        return;
+    }
+    
+    container.innerHTML = state.jobs.map(j => `
+        <div class="job-list-item ${j.id === currentJobId ? 'active' : ''}" onclick="selectJob('${j.id}')">
+            <span>${escapeHtml(j.name)}</span>
+            <button class="del-btn" onclick="event.stopPropagation();deleteJob('${j.id}')">×</button>
+        </div>
+    `).join('');
+
+    if (currentJobId) {
+        const j = state.jobs.find(x => x.id === currentJobId);
+        if (j) {
+            document.getElementById('job-jd-input').value = j.jd || '';
+            document.getElementById('job-tip-input').value = j.tip || '';
+            document.getElementById('job-rounds').value = j.rounds || 3;
+        }
+    } else {
+        document.getElementById('job-jd-input').value = '';
+        document.getElementById('job-tip-input').value = '';
+    }
+}
+
+function selectJob(id) {
+    currentJobId = id;
+    renderJobsView();
+}
+
+function addJob() {
+    const input = document.getElementById('job-name-input');
+    const name = input.value.trim();
+    if (!name) return;
+    if (state.jobs.find(j => j.name === name)) { toast('该岗位已存在'); return; }
+    const newJob = { id: uid(), name, rounds: 3, jd: '', tip: '' };
+    state.jobs.push(newJob);
+    state.settings.jobList = state.jobs.map(j => j.name);
+    input.value = '';
+    currentJobId = newJob.id;
+    saveState();
+    renderJobsView();
+    toast('岗位已添加');
+}
+
+function deleteJob(id) {
+    if (!confirm('确定要删除该岗位吗？')) return;
+    state.jobs = state.jobs.filter(x => x.id !== id);
+    state.settings.jobList = state.jobs.map(j => j.name);
+    if (currentJobId === id) currentJobId = null;
+    saveState();
+    renderJobsView();
+    toast('岗位已删除');
+}
+
+function saveJobDetail() {
+    if (!currentJobId) { toast('请先选择一个岗位'); return; }
+    const j = state.jobs.find(x => x.id === currentJobId);
+    if (!j) return;
+    j.jd = document.getElementById('job-jd-input').value.trim();
+    j.tip = document.getElementById('job-tip-input').value.trim();
+    j.rounds = parseInt(document.getElementById('job-rounds').value) || 3;
+    saveState();
+    toast('岗位详情已保存');
+}
+
+function saveSettingsFromInput() {
+    state.settings.company = document.getElementById('set-company').value.trim();
+    state.settings.startDate = document.getElementById('set-start-date').value;
+    state.settings.kpi = document.getElementById('set-kpi').value.trim();
+    saveState();
+    updateInfo();
+}
+
+/* ==========================================================
+   数据统计
+   ========================================================== */
+function renderStats() {
+    const c = state.candidates;
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 3600 * 1000);
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const inWeek = d => d && new Date(d) >= weekAgo;
+    const inMonth = d => d && new Date(d) >= monthStart;
+
+    const resumes = c;
+    const weekResumes = c.filter(x => inWeek(x.resumeDate));
+    const monthResumes = c.filter(x => inMonth(x.resumeDate));
+
+    const interviews = c.filter(x => x.phone === '是' || x.i1t);
+    const weekInterviews = interviews.filter(x => inWeek(x.i1t) || inWeek(x.resumeDate));
+    const monthInterviews = interviews.filter(x => inMonth(x.i1t) || inMonth(x.resumeDate));
+
+    const pass1 = c.filter(x => x.i1r === '通过');
+    const weekPass1 = pass1.filter(x => inWeek(x.i1t));
+    const monthPass1 = pass1.filter(x => inMonth(x.i1t));
+
+    const onboard = c.filter(x => x.onboard === '已入职');
+    const weekOnboard = onboard.filter(x => inWeek(x.resumeDate));
+    const monthOnboard = onboard.filter(x => inMonth(x.resumeDate));
+
+    const statsData = [
+        { label: '收到简历', total: resumes.length, week: weekResumes, month: monthResumes, list: resumes },
+        { label: '约面总数', total: interviews.length, week: weekInterviews, month: monthInterviews, list: interviews },
+        { label: '一面通过人数', total: pass1.length, week: weekPass1, month: monthPass1, list: pass1 },
+        { label: '入职数量', total: onboard.length, week: weekOnboard, month: monthOnboard, list: onboard }
+    ];
+
+    document.getElementById('stats-grid').innerHTML = statsData.map(d => `
+        <div class="stat-card">
+            <h3>${d.label}</h3>
+            <div class="stat-row">
+                <span>本周</span>
+                <span><span class="num">${d.week.length}</span> <span class="name-list">${d.week.map(x => x.name).join('、') || '暂无'}</span></span>
+            </div>
+            <div class="stat-row">
+                <span>本月</span>
+                <span><span class="num">${d.month.length}</span> <span class="name-list">${d.month.map(x => x.name).join('、') || '暂无'}</span></span>
+            </div>
+            <div class="stat-row stat-total">
+                <span>总数</span>
+                <span><span class="num">${d.total}</span> <span class="name-list">${d.list.map(x => x.name).join('、') || '暂无'}</span></span>
+            </div>
+        </div>
+    `).join('');
+
+    document.getElementById('stats-summary-text').innerHTML = 
+        `本周收到 <strong>${weekResumes.length}</strong> 份简历，邀约一面 <strong>${weekInterviews.length}</strong> 人`;
+}
+
+/* ==========================================================
+   导入导出
+   ========================================================== */
+function exportJSON() {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'hr-ledger-backup-' + todayStr() + '.json'; a.click();
+    URL.revokeObjectURL(a.href); toast('JSON 已导出');
+}
+
+function importJSON() {
+    const input = document.createElement('input'); input.type = 'file'; input.accept = '.json';
+    input.onchange = e => {
+        const file = e.target.files[0]; if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => {
+            try {
+                const data = JSON.parse(ev.target.result);
+                if (!data.candidates) throw new Error('文件格式不正确');
+                if (!confirm('导入将覆盖当前全部数据，是否继续？')) return;
+                state = Object.assign(state, data);
+                saveState();
+                renderTable(); renderCalendar(); renderTodos(); renderJobsView(); renderStats();
+                toast('数据导入成功');
+            } catch (err) { toast('导入失败：' + err.message); }
+        };
+        reader.readAsText(file);
+    };
+    input.click();
+}
+
+function exportExcel() {
+    if (!state.candidates.length) { toast('暂无数据可导出'); return; }
+    const headers = ['序号', '姓名', '投递岗位', '简历时间', '简历通过', '电话约面', '一面时间', '一面结果', '二面时间', '二面结果', '三面时间', '三面结果', '入职情况', '备注'];
+    const rows = state.candidates.map((c, i) => [
+        i + 1, c.name || '', c.job || '', c.resumeDate || '', c.resumePass || '',
+        c.phone || '', c.i1t || '', c.i1r || '', c.i2t || '', c.i2r || '',
+        c.i3t || '', c.i3r || '', c.onboard || '', c.note || ''
+    ]);
+    const csvContent = "\uFEFF" + [headers.join(','), ...rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `HR台账_${todayStr()}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+    toast('台账已导出');
+}
+
+/* ==========================================================
+   初始化
+   ========================================================== */
+window.addEventListener('DOMContentLoaded', () => {
+    updateInfo();
+    renderTable();
+    calInit();
+    renderCalendar();
+    renderTodos();
+    renderJobsView();
+    renderStats();
+});
+</script>
+</body>
+</html>
